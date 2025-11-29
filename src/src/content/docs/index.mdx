@@ -1,40 +1,219 @@
 ---
-title: Welcome to Starlight
-description: Get started building your docs site with Starlight.
-template: splash # Remove or comment out this line to display the site sidebar on this page.
+title: 欢迎使用 MiCake
+description: MiCake 是一个基于 .NET 的轻量级领域驱动设计（DDD）工具包
+template: splash
 hero:
-  tagline: Congrats on setting up a new Starlight project!
+  tagline: 🚀 快捷、规范、方便、灵活、轻柔的 .NET DDD 工具包
   image:
     file: ../../assets/houston.webp
   actions:
-    - text: Example Guide
-      link: /guides/example/
+    - text: 快速开始 →
+      link: /getting-started/quick-start/
       icon: right-arrow
-    - text: Read the Starlight docs
-      link: https://starlight.astro.build
+      variant: primary
+    - text: 查看 GitHub
+      link: https://github.com/MiCake/MiCake
       icon: external
-      variant: minimal
+      variant: secondary
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import { Card, CardGrid, Tabs, TabItem, Code } from '@astrojs/starlight/components';
 
-## Next steps
+## 快速安装
+
+<Tabs>
+  <TabItem label=".NET CLI">
+    ```bash
+    # 安装 MiCake 核心包
+    dotnet add package MiCake.Core
+    
+    # 安装 ASP.NET Core 集成
+    dotnet add package MiCake.AspNetCore
+    
+    # 安装 Entity Framework Core 集成
+    dotnet add package MiCake.EntityFrameworkCore
+    ```
+  </TabItem>
+  
+  <TabItem label="Package Manager">
+    ```powershell
+    # 安装 MiCake 核心包
+    Install-Package MiCake.Core
+    
+    # 安装 ASP.NET Core 集成
+    Install-Package MiCake.AspNetCore
+    
+    # 安装 Entity Framework Core 集成
+    Install-Package MiCake.EntityFrameworkCore
+    ```
+  </TabItem>
+  
+  <TabItem label="PackageReference">
+    ```xml
+    <ItemGroup>
+      <PackageReference Include="MiCake.Core" Version="*" />
+      <PackageReference Include="MiCake.AspNetCore" Version="*" />
+      <PackageReference Include="MiCake.EntityFrameworkCore" Version="*" />
+    </ItemGroup>
+    ```
+  </TabItem>
+</Tabs>
+
+## 5 分钟快速上手
+
+```csharp title="Program.cs" {3,8-12}
+var builder = WebApplication.CreateBuilder(args);
+
+// 添加 MiCake 服务
+builder.Services.AddMiCakeWithDefault<MyAppModule, MyDbContext>(options =>
+{
+    options.DbConfig = db =>
+    {
+        db.ConnectionString = builder.Configuration.GetConnectionString("Default");
+        db.UseSqlServer();
+    };
+}).Build();
+
+var app = builder.Build();
+
+// 启动 MiCake
+app.StartMiCake();
+
+app.Run();
+```
+
+## 什么是 MiCake？
+
+**MiCake** 是一个基于 .NET 开发的轻量级领域驱动设计（DDD）工具包。它旨在帮助开发者快速将现有项目转换为 DDD 风格，同时保持代码的简洁性和灵活性。
+
+### ✨ 为什么选择 MiCake？
+
+- 🎯 **专注领域逻辑** - 提供完整的 DDD 战术模式支持，让你专注于业务代码
+- 🔌 **非侵入式设计** - 轻松集成到现有项目，不改变原有架构
+- 📦 **模块化架构** - 按需使用，灵活组合各种功能模块
+- 🚀 **开箱即用** - 丰富的工具集和最佳实践，加速开发效率
+- 📚 **完善文档** - 详细的使用指南和代码示例
+
+## 🎯 核心特性
 
 <CardGrid stagger>
-	<Card title="Update content" icon="pencil">
-		Edit `src/content/docs/index.mdx` to see this page change.
-	</Card>
-	<Card title="Change page layout" icon="document">
-		Delete `template: splash` in `src/content/docs/index.mdx` to display a
-		sidebar on this page.
-	</Card>
-	<Card title="Add new content" icon="add-document">
-		Add Markdown or MDX files to `src/content/docs` to create new pages.
-	</Card>
-	<Card title="Configure your site" icon="setting">
-		Edit your `sidebar` and other config in `astro.config.mjs`.
-	</Card>
-	<Card title="Read the docs" icon="open-book">
-		Learn more in [the Starlight Docs](https://starlight.astro.build/).
-	</Card>
+  <Card title="🏗️ DDD 战术模式" icon="puzzle">
+    **完整的 DDD 支持**
+    
+    - ✅ 实体 (Entity)
+    - ✅ 值对象 (Value Object)
+    - ✅ 聚合根 (Aggregate Root)
+    - ✅ 仓储 (Repository)
+    - ✅ 领域事件 (Domain Event)
+    - ✅ 领域服务 (Domain Service)
+    - ✅ 工作单元 (Unit of Work)
+  </Card>
+  
+  <Card title="⚡ 自动化功能" icon="rocket">
+    **开箱即用的企业级功能**
+    
+    - 🔄 自动审计（创建/修改时间和人）
+    - 🗑️ 软删除支持
+    - 🎯 统一返回格式
+    - 🚨 全局异常处理
+    - 💉 依赖注入增强
+  </Card>
+  
+  <Card title="🛠️ 实用工具集" icon="seti:config">
+    **丰富的工具类库**
+    
+    - 🗄️ LRU 缓存
+    - 🔄 类型转换器
+    - 🔍 动态查询构建器
+    - 🔌 熔断器模式
+    - 💾 数据存储池
+  </Card>
+  
+  <Card title="📦 模块化设计" icon="setting">
+    **灵活的模块系统**
+    
+    - 🧩 按需加载
+    - 🔗 模块依赖管理
+    - ⚙️ 生命周期钩子
+    - 🎛️ 配置管理
+  </Card>
+</CardGrid>
+
+## 💡 代码示例
+
+### 定义聚合根
+
+```csharp title="Order.cs" {1,3-5,11-17}
+public class Order : AggregateRoot<int>
+{
+    public string OrderNumber { get; private set; }
+    public OrderStatus Status { get; private set; }
+    public decimal TotalAmount { get; private set; }
+    
+    private readonly List<OrderItem> _items = new();
+    public IReadOnlyCollection<OrderItem> Items => _items.AsReadOnly();
+    
+    // 领域方法
+    public void Confirm()
+    {
+        if (Status != OrderStatus.Draft)
+            throw new DomainException("只能确认草稿状态的订单");
+            
+        Status = OrderStatus.Confirmed;
+        RaiseDomainEvent(new OrderConfirmedEvent(Id));
+    }
+}
+```
+
+### 使用仓储
+
+```csharp title="OrderService.cs" {5,10-11}
+public class OrderService : IScopedService
+{
+    private readonly IRepository<Order, int> _orderRepository;
+    
+    public async Task<Order> CreateOrder(CreateOrderDto dto)
+    {
+        var order = Order.Create(dto.CustomerId, dto.Items);
+        
+        // 自动注册的仓储
+        await _orderRepository.AddAsync(order);
+        await _orderRepository.SaveChangesAsync();
+        
+        return order;
+    }
+}
+```
+
+### 处理领域事件
+
+```csharp title="OrderConfirmedEventHandler.cs" {1,5-6}
+public class OrderConfirmedEventHandler : IDomainEventHandler<OrderConfirmedEvent>
+{
+    public async Task Handle(OrderConfirmedEvent @event)
+    {
+        // 发送确认邮件
+        await _emailService.SendOrderConfirmation(@event.OrderId);
+    }
+}
+```
+
+## 下一步
+
+<CardGrid>
+  <Card title="快速开始" icon="rocket">
+    查看[快速开始指南](/getting-started/quick-start/)，在 5 分钟内创建您的第一个 MiCake 应用。
+  </Card>
+  
+  <Card title="核心概念" icon="open-book">
+    了解 [MiCake 核心概念](/getting-started/core-concepts/)，深入理解框架设计理念。
+  </Card>
+  
+  <Card title="领域驱动设计" icon="puzzle">
+    学习[领域驱动设计](/domain-driven/entity/)的实践，掌握 DDD 战术模式。
+  </Card>
+  
+  <Card title="工具集" icon="seti:config">
+    探索 [MiCake 工具集](/utilities/overview/)，使用丰富的实用工具类。
+  </Card>
 </CardGrid>
