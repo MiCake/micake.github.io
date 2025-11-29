@@ -4,9 +4,11 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
+	site: 'https://micake.github.io',
+	base: '/MiCakeDoc',
 	integrations: [
 		starlight({
-			title: 'MiCake 文档',
+			title: 'MiCake',
 			logo: {
 				src: './src/assets/houston.webp',
 			},

@@ -3,23 +3,96 @@ title: 欢迎使用 MiCake
 description: MiCake 是一个基于 .NET 的轻量级领域驱动设计（DDD）工具包
 template: splash
 hero:
-  tagline: 🚀 快捷、规范、方便、灵活、轻柔的 .NET DDD 工具包
+  tagline: 🚀 专为 .NET 开发者打造的轻量级 DDD 工具包，让领域驱动设计变得简单、规范且高效。
   image:
     file: ../../assets/houston.webp
   actions:
-    - text: 快速开始 →
+    - text: 立即开始
       link: /getting-started/quick-start/
-      icon: right-arrow
+      icon: rocket
       variant: primary
-    - text: 查看 GitHub
+    - text: GitHub 源码
       link: https://github.com/MiCake/MiCake
-      icon: external
+      icon: github
       variant: secondary
 ---
 
 import { Card, CardGrid, Tabs, TabItem, Code } from '@astrojs/starlight/components';
 
-## 快速安装
+<div class="why-micake-section">
+  <h2 class="section-title">为什么选择 MiCake？</h2>
+  <p class="section-desc">MiCake 致力于简化 .NET 平台下的领域驱动设计（DDD）落地。它提供了一套完整的工具链，帮助您构建清晰、可维护的业务系统。</p>
+
+  <div class="benefit-grid">
+    <div class="benefit-card">
+      <div class="card-icon">🏗️</div>
+      <div class="card-content">
+        <h3>DDD 战术模式</h3>
+        <p>提供完整的 DDD 战术模式支持，包括<strong>实体</strong>、<strong>值对象</strong>、<strong>聚合根</strong>、<strong>仓储</strong>等，让您专注于核心业务逻辑。</p>
+      </div>
+    </div>
+    
+    <div class="benefit-card">
+      <div class="card-icon">⚡</div>
+      <div class="card-content">
+        <h3>自动化赋能</h3>
+        <p>内置<strong>自动审计</strong>、<strong>软删除</strong>、<strong>统一返回格式</strong>等企业级功能，减少重复劳动，提升开发效率。</p>
+      </div>
+    </div>
+    
+    <div class="benefit-card">
+      <div class="card-icon">🛠️</div>
+      <div class="card-content">
+        <h3>实用工具集</h3>
+        <p>包含 <strong>LRU 缓存</strong>、<strong>类型转换</strong>、<strong>动态查询</strong>、<strong>熔断器</strong>等丰富的工具类库，开箱即用。</p>
+      </div>
+    </div>
+    
+    <div class="benefit-card">
+      <div class="card-icon">📦</div>
+      <div class="card-content">
+        <h3>模块化架构</h3>
+        <p>采用灵活的模块化设计，支持<strong>按需加载</strong>和<strong>依赖管理</strong>，轻松应对复杂系统的架构需求。</p>
+      </div>
+    </div>
+
+    <div class="benefit-card">
+      <div class="card-icon">🔌</div>
+      <div class="card-content">
+        <h3>非侵入式设计</h3>
+        <p>轻松集成到现有项目，<strong>不改变原有架构</strong>，让迁移变得简单平滑，降低技术债务风险。</p>
+      </div>
+    </div>
+
+    <div class="benefit-card">
+      <div class="card-icon">✨</div>
+      <div class="card-content">
+        <h3>最佳实践</h3>
+        <p>内置多年 DDD 落地经验总结，提供<strong>标准化的代码结构</strong>和开发规范，助您少走弯路。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+## ⚡ 极速上手
+
+只需几行代码，即可将 MiCake 集成到您的 ASP.NET Core 项目中。
+
+```csharp title="Program.cs" {4,9}
+var builder = WebApplication.CreateBuilder(args);
+
+// 1. 添加 MiCake 服务
+builder.Services.AddMiCakeWithDefault<MyAppModule, MyDbContext>().Build();
+
+var app = builder.Build();
+
+// 2. 启动 MiCake
+app.StartMiCake();
+
+app.Run();
+```
+
+## 📦 快速安装
 
 <Tabs>
   <TabItem label=".NET CLI">
@@ -47,162 +120,13 @@ import { Card, CardGrid, Tabs, TabItem, Code } from '@astrojs/starlight/componen
     Install-Package MiCake.EntityFrameworkCore
     ```
   </TabItem>
-  
-  <TabItem label="PackageReference">
-    ```xml
-    <ItemGroup>
-      <PackageReference Include="MiCake.Core" Version="*" />
-      <PackageReference Include="MiCake.AspNetCore" Version="*" />
-      <PackageReference Include="MiCake.EntityFrameworkCore" Version="*" />
-    </ItemGroup>
-    ```
-  </TabItem>
 </Tabs>
 
-## 5 分钟快速上手
-
-```csharp title="Program.cs" {3,8-12}
-var builder = WebApplication.CreateBuilder(args);
-
-// 添加 MiCake 服务
-builder.Services.AddMiCakeWithDefault<MyAppModule, MyDbContext>(options =>
-{
-    options.DbConfig = db =>
-    {
-        db.ConnectionString = builder.Configuration.GetConnectionString("Default");
-        db.UseSqlServer();
-    };
-}).Build();
-
-var app = builder.Build();
-
-// 启动 MiCake
-app.StartMiCake();
-
-app.Run();
-```
-
-## 什么是 MiCake？
-
-**MiCake** 是一个基于 .NET 开发的轻量级领域驱动设计（DDD）工具包。它旨在帮助开发者快速将现有项目转换为 DDD 风格，同时保持代码的简洁性和灵活性。
-
-### ✨ 为什么选择 MiCake？
-
-- 🎯 **专注领域逻辑** - 提供完整的 DDD 战术模式支持，让你专注于业务代码
-- 🔌 **非侵入式设计** - 轻松集成到现有项目，不改变原有架构
-- 📦 **模块化架构** - 按需使用，灵活组合各种功能模块
-- 🚀 **开箱即用** - 丰富的工具集和最佳实践，加速开发效率
-- 📚 **完善文档** - 详细的使用指南和代码示例
-
-## 🎯 核心特性
-
-<CardGrid stagger>
-  <Card title="🏗️ DDD 战术模式" icon="puzzle">
-    **完整的 DDD 支持**
-    
-    - ✅ 实体 (Entity)
-    - ✅ 值对象 (Value Object)
-    - ✅ 聚合根 (Aggregate Root)
-    - ✅ 仓储 (Repository)
-    - ✅ 领域事件 (Domain Event)
-    - ✅ 领域服务 (Domain Service)
-    - ✅ 工作单元 (Unit of Work)
-  </Card>
-  
-  <Card title="⚡ 自动化功能" icon="rocket">
-    **开箱即用的企业级功能**
-    
-    - 🔄 自动审计（创建/修改时间和人）
-    - 🗑️ 软删除支持
-    - 🎯 统一返回格式
-    - 🚨 全局异常处理
-    - 💉 依赖注入增强
-  </Card>
-  
-  <Card title="🛠️ 实用工具集" icon="seti:config">
-    **丰富的工具类库**
-    
-    - 🗄️ LRU 缓存
-    - 🔄 类型转换器
-    - 🔍 动态查询构建器
-    - 🔌 熔断器模式
-    - 💾 数据存储池
-  </Card>
-  
-  <Card title="📦 模块化设计" icon="setting">
-    **灵活的模块系统**
-    
-    - 🧩 按需加载
-    - 🔗 模块依赖管理
-    - ⚙️ 生命周期钩子
-    - 🎛️ 配置管理
-  </Card>
-</CardGrid>
-
-## 💡 代码示例
-
-### 定义聚合根
-
-```csharp title="Order.cs" {1,3-5,11-17}
-public class Order : AggregateRoot<int>
-{
-    public string OrderNumber { get; private set; }
-    public OrderStatus Status { get; private set; }
-    public decimal TotalAmount { get; private set; }
-    
-    private readonly List<OrderItem> _items = new();
-    public IReadOnlyCollection<OrderItem> Items => _items.AsReadOnly();
-    
-    // 领域方法
-    public void Confirm()
-    {
-        if (Status != OrderStatus.Draft)
-            throw new DomainException("只能确认草稿状态的订单");
-            
-        Status = OrderStatus.Confirmed;
-        RaiseDomainEvent(new OrderConfirmedEvent(Id));
-    }
-}
-```
-
-### 使用仓储
-
-```csharp title="OrderService.cs" {5,10-11}
-public class OrderService : IScopedService
-{
-    private readonly IRepository<Order, int> _orderRepository;
-    
-    public async Task<Order> CreateOrder(CreateOrderDto dto)
-    {
-        var order = Order.Create(dto.CustomerId, dto.Items);
-        
-        // 自动注册的仓储
-        await _orderRepository.AddAsync(order);
-        await _orderRepository.SaveChangesAsync();
-        
-        return order;
-    }
-}
-```
-
-### 处理领域事件
-
-```csharp title="OrderConfirmedEventHandler.cs" {1,5-6}
-public class OrderConfirmedEventHandler : IDomainEventHandler<OrderConfirmedEvent>
-{
-    public async Task Handle(OrderConfirmedEvent @event)
-    {
-        // 发送确认邮件
-        await _emailService.SendOrderConfirmation(@event.OrderId);
-    }
-}
-```
-
-## 下一步
+## 📚 探索更多
 
 <CardGrid>
   <Card title="快速开始" icon="rocket">
-    查看[快速开始指南](/getting-started/quick-start/)，在 5 分钟内创建您的第一个 MiCake 应用。
+    查看 [快速开始指南](/getting-started/quick-start/)，在 5 分钟内创建您的第一个 MiCake 应用。
   </Card>
   
   <Card title="核心概念" icon="open-book">
@@ -210,7 +134,7 @@ public class OrderConfirmedEventHandler : IDomainEventHandler<OrderConfirmedEven
   </Card>
   
   <Card title="领域驱动设计" icon="puzzle">
-    学习[领域驱动设计](/domain-driven/entity/)的实践，掌握 DDD 战术模式。
+    学习 [领域驱动设计](/domain-driven/entity/) 的实践，掌握 DDD 战术模式。
   </Card>
   
   <Card title="工具集" icon="seti:config">
