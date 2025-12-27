@@ -76,6 +76,13 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'API 日志',
+					items:[
+						{ label: '记录API请求日志', slug: 'api-logging/api-log-usage' },
+					]
+
+				},
+				{
 					label: '自动审计',
 					slug: 'audit',
 				},
