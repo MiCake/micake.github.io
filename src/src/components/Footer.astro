@@ -1,0 +1,243 @@
+---
+// Footer.astro - Static footer component (no hydration needed)
+const currentYear = new Date().getFullYear();
+
+const links = {
+  docs: [
+    { label: 'Quick Start', href: '/getting-started/quick-start/' },
+    { label: 'Core Concepts', href: '/getting-started/core-concepts/' },
+    { label: 'Introduction', href: '/getting-started/introduction/' },
+  ],
+  resources: [
+    { label: 'Entity', href: '/domain-driven/entity/' },
+    { label: 'Aggregate Root', href: '/domain-driven/aggregate-root/' },
+    { label: 'Repository', href: '/domain-driven/repository/' },
+  ],
+  community: [
+    { label: 'GitHub', href: 'https://github.com/MiCake/MiCake', external: true },
+    { label: 'Issues', href: 'https://github.com/MiCake/MiCake/issues', external: true },
+    { label: 'Discussions', href: 'https://github.com/MiCake/MiCake/discussions', external: true },
+  ],
+};
+---
+
+<footer class="footer">
+  <div class="footer-container">
+    <!-- Top Section -->
+    <div class="footer-top">
+      <!-- Brand -->
+      <div class="footer-brand">
+        <a href="/" class="footer-logo">
+          <span class="logo-icon">🍰</span>
+          <span class="logo-text">MiCake</span>
+        </a>
+        <p class="footer-tagline">
+          A lightweight DDD toolkit for .NET developers who demand speed and elegance.
+        </p>
+      </div>
+
+      <!-- Links Grid -->
+      <div class="footer-links">
+        <div class="footer-column">
+          <h4 class="footer-heading">Documentation</h4>
+          <ul class="footer-list">
+            {links.docs.map((link) => (
+              <li>
+                <a href={link.href} class="footer-link">{link.label}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div class="footer-column">
+          <h4 class="footer-heading">Resources</h4>
+          <ul class="footer-list">
+            {links.resources.map((link) => (
+              <li>
+                <a href={link.href} class="footer-link">{link.label}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div class="footer-column">
+          <h4 class="footer-heading">Community</h4>
+          <ul class="footer-list">
+            {links.community.map((link) => (
+              <li>
+                <a 
+                  href={link.href} 
+                  class="footer-link"
+                  target={link.external ? '_blank' : undefined}
+                  rel={link.external ? 'noopener noreferrer' : undefined}
+                >
+                  {link.label}
+                  {link.external && (
+                    <svg class="external-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  )}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div class="footer-divider"></div>
+
+    <!-- Bottom Section -->
+    <div class="footer-bottom">
+      <p class="footer-copyright">
+        © {currentYear} MiCake. Released under the MIT License.
+      </p>
+      <p class="footer-made">
+        Made with <span class="heart">💛</span> for the .NET community
+      </p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-color);
+    padding: 4rem 0 2rem;
+  }
+
+  .footer-container {
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .footer-top {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+
+  @media (min-width: 768px) {
+    .footer-top {
+      grid-template-columns: 1.5fr 2fr;
+      gap: 4rem;
+    }
+  }
+
+  .footer-brand {
+    max-width: 300px;
+  }
+
+  .footer-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    text-decoration: none;
+  }
+
+  .logo-icon {
+    font-size: 2rem;
+  }
+
+  .logo-text {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .footer-tagline {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .footer-links {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+
+  @media (max-width: 640px) {
+    .footer-links {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .footer-heading {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+  }
+
+  .footer-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .footer-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .footer-link:hover {
+    color: var(--brand-primary);
+  }
+
+  .external-icon {
+    width: 14px;
+    height: 14px;
+    opacity: 0.5;
+  }
+
+  .footer-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 3rem 0 2rem;
+  }
+
+  .footer-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: center;
+  }
+
+  @media (min-width: 640px) {
+    .footer-bottom {
+      flex-direction: row;
+      justify-content: space-between;
+    }
+  }
+
+  .footer-copyright,
+  .footer-made {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+  }
+
+  .heart {
+    display: inline-block;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+  }
+</style>

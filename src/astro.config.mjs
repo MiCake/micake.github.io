@@ -1,11 +1,18 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import react from '@astrojs/react';
+import tailwind from '@astrojs/tailwind';
 
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://micake.github.io',
 	integrations: [
+		react(),
+		tailwind({
+			// Disable injecting base styles for Starlight compatibility
+			applyBaseStyles: false,
+		}),
 		starlight({
 			title: 'MiCake',
 			logo: {

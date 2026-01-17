@@ -1,0 +1,176 @@
+---
+export interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { 
+  title = 'MiCake - Lightweight DDD Framework for .NET',
+  description = 'MiCake is a lightweight Domain-Driven Design toolkit for .NET, providing DDD tactical patterns, auto-audit, soft delete, and more.'
+} = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title}</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    
+    <!-- Prevent FOUC - Check theme immediately -->
+    <script is:inline>
+      (function() {
+        const savedTheme = localStorage.getItem('theme') || localStorage.getItem('starlight-theme');
+        
+        // Default to dark theme unless explicitly set to light
+        const theme = savedTheme === 'light' ? 'light' : 'dark';
+        
+        // Set both class and data-theme for compatibility
+        document.documentElement.classList.remove('dark', 'light');
+        document.documentElement.classList.add(theme);
+        document.documentElement.setAttribute('data-theme', theme);
+        
+        // Sync both storage keys
+        localStorage.setItem('theme', theme);
+        localStorage.setItem('starlight-theme', theme);
+      })();
+    </script>
+    
+    <!-- Base Styles -->
+    <style is:global>
+      /* CSS Variables for Theming */
+      :root {
+        --brand-primary: #FF9F1C;
+        --brand-secondary: #FFBF69;
+        --brand-accent: #F97316;
+        
+        /* Dark Mode (default) */
+        --bg-main: #12100E;
+        --bg-surface: #1F1B18;
+        --bg-surface-hover: #2A2420;
+        --text-primary: #FEFEFE;
+        --text-secondary: #A8A29E;
+        --text-muted: #6B6560;
+        --border-color: rgba(255, 255, 255, 0.08);
+        --border-accent: rgba(255, 159, 28, 0.3);
+        
+        /* Typography */
+        --font-sans: 'Inter', system-ui, sans-serif;
+        --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+      }
+      
+      .light {
+        --bg-main: #FFFDF7;
+        --bg-surface: #FFFFFF;
+        --bg-surface-hover: #FEF7ED;
+        --text-primary: #1F1B18;
+        --text-secondary: #78716C;
+        --text-muted: #A8A29E;
+        --border-color: rgba(0, 0, 0, 0.08);
+        --border-accent: rgba(255, 159, 28, 0.4);
+      }
+      
+      /* Base Resets */
+      *, *::before, *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      
+      html {
+        scroll-behavior: smooth;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      body {
+        font-family: var(--font-sans);
+        background-color: var(--bg-main);
+        color: var(--text-primary);
+        line-height: 1.6;
+        min-height: 100vh;
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+      
+      /* Utility Classes */
+      .font-mono {
+        font-family: var(--font-mono);
+      }
+      
+      /* Selection */
+      ::selection {
+        background-color: var(--brand-primary);
+        color: #12100E;
+      }
+      
+      /* Scrollbar Styling */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      
+      ::-webkit-scrollbar-track {
+        background: var(--bg-surface);
+      }
+      
+      ::-webkit-scrollbar-thumb {
+        background: var(--text-muted);
+        border-radius: 4px;
+      }
+      
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--text-secondary);
+      }
+      
+      /* Focus Visible */
+      :focus-visible {
+        outline: 2px solid var(--brand-primary);
+        outline-offset: 2px;
+      }
+      
+      /* Link Reset */
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      
+      /* Button Reset */
+      button {
+        font-family: inherit;
+        cursor: pointer;
+        border: none;
+        background: none;
+      }
+      
+      /* Image Optimization */
+      img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+      }
+      
+      /* Screen Reader Only */
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
