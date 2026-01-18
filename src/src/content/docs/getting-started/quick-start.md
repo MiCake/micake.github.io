@@ -1,9 +1,8 @@
 ---
 title: 快速开始
-description: 帮助您在 ASP.NET Core 项目中快速集成 MiCake 框架，并创建一个简单的 DDD 应用
 ---
 
-本指南将帮助您在 ASP.NET Core 项目中快速集成 MiCake 框架,并创建一个简单的 DDD 应用。
+本指南将帮助您通过模板项目创建一个基于MiCake的`ASP.NET Core`应用：
 
 ## 前置要求
 
@@ -14,443 +13,77 @@ description: 帮助您在 ASP.NET Core 项目中快速集成 MiCake 框架，并
 - 基本的 **C#** 和 **ASP.NET Core** 知识
 - 了解 **Entity Framework Core** 基础（可选）
 
-## 第一步：安装 NuGet 包
+## 从模板开始
 
-在您的 ASP.NET Core 项目中，通过 NuGet 安装 MiCake 启动包。
+下面的步骤将指导您如何使用 MiCake 提供的`dotnet new`模板来快速创建一个新的项目。
+在此之前请确保您已经安装了最新的.NET SDK。
 
-### 使用 Package Manager Console
+如果你想基于自己的项目来构建，请参考[现有项目集成](./from-custom.md) 
 
-```powershell
-Install-Package MiCake.AspNetCore.Start
-```
+### 1. 安装模板集合
 
-### 使用 .NET CLI
+首先，安装 MiCake.Templates 模板包：
 
 ```bash
-dotnet add package MiCake.AspNetCore.Start
+dotnet new install MiCake.Templates
 ```
 
-`MiCake.AspNetCore.Start` 包会自动引入所有必需的依赖项，包括：
-- MiCake.Core
-- MiCake（DDD 组件）
-- MiCake.AspNetCore
-- MiCake.EntityFrameworkCore
+### 2. 创建新项目
 
-## 第二步：创建入口模块
+MiCake.Templates 提供了两个模板：
 
-在项目根目录创建一个继承自 `MiCakeModule` 的入口模块类。这个类告诉 MiCake 从哪个程序集启动。
+- **标准 WebAPI 模板** (`micake-webapi`)：基于 MiCake 的标准 ASP.NET Core Web API 模板，包含基本的 DDD 架构。
+- **带 RBAC 的 WebAPI 模板** (`micake-webapi-rbac`)：在标准模板基础上增加了基于角色的访问控制 (RBAC) 功能。
 
-```csharp
-using MiCake.AspNetCore.Modules;
-using MiCake.Core.Modularity;
-using Microsoft.Extensions.DependencyInjection;
-
-// 声明依赖 MiCake 的 ASP.NET Core 模块
-[RelyOn(typeof(MiCakeAspNetCoreModule))]
-public class MyAppModule : MiCakeModule
-{
-    public override void ConfigureServices(ModuleConfigServiceContext context)
-    {
-        // 自动注册当前程序集中的仓储
-        // 这会扫描程序集中的所有聚合根并自动创建对应的仓储
-        context.AutoRegisterRepositories(typeof(MyAppModule).Assembly);
-
-        base.ConfigureServices(context);
-    }
-}
-```
-
-**关键点说明：**
-
-- `[RelyOn]` 特性声明模块依赖关系，确保所需模块先于当前模块初始化
-- `ConfigureServices` 方法用于配置服务注册
-- `AutoRegisterRepositories` 自动为聚合根创建仓储实例
-- 入口模块通常放在 Web 项目或应用层
-
-## 第三步：创建 DbContext
-
-创建一个继承自 `MiCakeDbContext` 的数据库上下文类：
-
-```csharp
-using MiCake.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
-
-public class MyDbContext : MiCakeDbContext
-{
-    public MyDbContext(DbContextOptions<MyDbContext> options) : base(options)
-    {
-    }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        // 可以在此添加额外的配置
-
-        base.OnConfiguring(optionsBuilder);
-    }
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        // 在此添加你的实体配置
-        // modelBuilder.Entity<MyEntity>()...
-
-        // 非常重要：必须调用基类方法
-        // 这会应用 MiCake 的实体配置（如审计字段、软删除等）
-        // 最好将这行代码放在方法的最后
-        base.OnModelCreating(modelBuilder);
-    }
-}
-```
-
-**重要提示：**
-
-⚠️ 不要删除 `base.OnModelCreating(modelBuilder)` 这行代码！它负责配置 MiCake 的核心功能，如：
-- 自动审计字段的映射
-- 软删除过滤器
-- 领域事件的处理
-
-## 第四步：配置 Startup
-
-在 `Program.cs` 中配置 MiCake：
-
-### 配置 MiCake
-
-```csharp
-using MiCake.Core;
-using Microsoft.EntityFrameworkCore;
-
-var builder = WebApplication.CreateBuilder(args);
-
-// 添加服务
-builder.Services.AddControllers();
-
-// 配置 DbContext
-builder.Services.AddDbContext<MyDbContext>(options =>
-{
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-    );
-});
-
-// 配置 MiCake
-builder.Services.AddMiCakeWithDefault<MyAppModule, MyDbContext>().Build();
-
-var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseDeveloperExceptionPage();
-}
-
-app.UseRouting();
-app.UseAuthorization();
-
-// 启动 MiCake
-app.StartMiCake();
-
-app.MapControllers();
-
-app.Run();
-```
-
-**配置说明：**
-
-- `AddMiCakeWithDefault<TModule, TDbContext>`：一站式配置方法
-- `AppConfig`：配置应用级选项，如领域层程序集
-- `AspNetConfig`：配置 ASP.NET Core 功能，如统一返回格式
-- `AuditConfig`：配置审计功能
-- `Build()`：构建 MiCake 模块系统
-- `StartMiCake()`：启动 MiCake，初始化所有模块
-
-## 第五步：创建领域对象
-
-现在可以创建你的第一个聚合根和实体了。
-
-### 创建聚合根
-
-```csharp
-using MiCake.DDD.Domain;
-
-// 聚合根：书籍
-public class Book : AggregateRoot<int>
-{
-    public string Title { get; private set; }
-    public string Author { get; private set; }
-    public decimal Price { get; private set; }
-    public bool IsPublished { get; private set; }
-
-    // EF Core 需要无参构造函数
-    private Book() { }
-
-    // 工厂方法：创建新书籍
-    public static Book Create(string title, string author, decimal price)
-    {
-        var book = new Book
-        {
-            Title = title,
-            Author = author,
-            Price = price,
-            IsPublished = false
-        };
-
-        // 发布领域事件
-        book.RaiseDomainEvent(new BookCreatedEvent(book.Id, title));
-
-        return book;
-    }
-
-    // 业务方法：出版书籍
-    public void Publish()
-    {
-        if (IsPublished)
-            throw new DomainException("Book is already published");
-
-        IsPublished = true;
-        RaiseDomainEvent(new BookPublishedEvent(Id, Title));
-    }
-
-    // 业务方法：更新价格
-    public void UpdatePrice(decimal newPrice)
-    {
-        if (newPrice < 0)
-            throw new DomainException("Price cannot be negative");
-
-        Price = newPrice;
-    }
-}
-```
-
-### 创建领域事件
-
-```csharp
-using MiCake.DDD.Domain;
-
-// 书籍创建事件
-public class BookCreatedEvent : IDomainEvent
-{
-    public int BookId { get; }
-    public string Title { get; }
-
-    public BookCreatedEvent(int bookId, string title)
-    {
-        BookId = bookId;
-        Title = title;
-    }
-}
-
-// 书籍出版事件
-public class BookPublishedEvent : IDomainEvent
-{
-    public int BookId { get; }
-    public string Title { get; }
-
-    public BookPublishedEvent(int bookId, string title)
-    {
-        BookId = bookId;
-        Title = title;
-    }
-}
-```
-
-### 创建领域事件处理器
-
-```csharp
-using MiCake.DDD.Domain;
-using System.Threading;
-using System.Threading.Tasks;
-
-public class BookCreatedEventHandler : IDomainEventHandler<BookCreatedEvent>
-{
-    public Task HandleAysnc(BookCreatedEvent domainEvent, CancellationToken cancellationToken = default)
-    {
-        // 处理书籍创建事件，例如发送通知、记录日志等
-        Console.WriteLine($"New book created: {domainEvent.Title}");
-        return Task.CompletedTask;
-    }
-}
-```
-
-### 创建仓储
-```csharp
-using MiCake.DDD.Domain;
-
-public interface IBookRepository : IRepository<Book, int>
-{
-    // 可以添加自定义查询方法
-}
-```
-
-## 第六步：使用仓储
-
-在 Controller 或 Application Service 中使用仓储：
-
-```csharp
-using MiCake.DDD.Domain;
-using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
-
-[ApiController]
-[Route("api/[controller]")]
-public class BooksController : ControllerBase
-{
-    private readonly IBookRepository _bookRepository;
-
-    public BooksController(IBookRepository bookRepository)
-    {
-        _bookRepository = bookRepository;
-    }
-
-    // 创建书籍
-    [HttpPost]
-    public async Task<IActionResult> CreateBook(CreateBookDto dto)
-    {
-        // 使用工厂方法创建聚合根
-        var book = Book.Create(dto.Title, dto.Author, dto.Price);
-
-        // 添加到仓储
-        await _bookRepository.AddAsync(book);
-
-        // 保存更改 - 此时会自动派发领域事件
-        await _bookRepository.SaveChangesAsync();
-
-        return Ok(book);
-    }
-
-    // 获取书籍
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetBook(int id)
-    {
-        var book = await _bookRepository.FindAsync(id);
-        if (book == null)
-            return NotFound();
-
-        return Ok(book);
-    }
-
-    // 出版书籍
-    [HttpPost("{id}/publish")]
-    public async Task<IActionResult> PublishBook(int id)
-    {
-        var book = await _bookRepository.FindAsync(id);
-        if (book == null)
-            return NotFound();
-
-        // 调用业务方法
-        book.Publish();
-
-        // 也可以不用调用 _bookRepository.SaveChangesAsync()
-        // 因为默认情况下，MiCake会在请求结束时自动保存更改
-        
-        return Ok();
-    }
-}
-
-// DTO 定义
-public class CreateBookDto
-{
-    public string Title { get; set; }
-    public string Author { get; set; }
-    public decimal Price { get; set; }
-}
-```
-
-## 第七步：运行和测试
-
-1. **应用数据库迁移**：
+选择合适的模板创建项目：
 
 ```bash
-# 创建迁移
-dotnet ef migrations add InitialCreate
+# 创建标准 WebAPI 项目
+dotnet new micake-webapi -n MyProjectName
 
-# 更新数据库
-dotnet ef database update
+# 或创建带 RBAC 的 WebAPI 项目
+dotnet new micake-webapi-rbac -n MyProjectName
 ```
 
-2. **运行应用**：
+### 3. 配置和运行项目
+
+进入项目目录：
+
+```bash
+cd MyProjectName
+```
+
+构建项目：
+
+```bash
+dotnet build
+```
+
+运行项目：
 
 ```bash
 dotnet run
 ```
 
-3. **测试 API**：
+项目启动后，您可以在浏览器中访问 `http://localhost:port/scalar/v1` 查看 API 文档（开发环境默认启用 Scalar OpenAPI 界面）。
 
-```bash
-# 创建书籍
-curl -X POST https://localhost:5001/api/books \
-  -H "Content-Type: application/json" \
-  -d '{"title":"DDD实战","author":"张三","price":89.00}'
+### 4. 数据库配置（可选）
 
-# 获取书籍
-curl https://localhost:5001/api/books/1
+模板默认使用 PostgreSQL。如果需要运行完整功能，请确保数据库已配置：
 
-# 出版书籍
-curl -X POST https://localhost:5001/api/books/1/publish
-```
+- 更新 `appsettings.Development.json` 中的连接字符串。
+- 使用 EF Core 迁移工具初始化数据库（参考项目中的 README 文件）。
 
-## 统一返回格式示例
-
-当启用 `UseDataWrapper = true` 后，API 返回格式会被自动包装：
-
-```json
-{
-  "code": "200",
-  "message": "Success",
-  "data": {
-    "id": 1,
-    "title": "DDD实战",
-    "author": "张三",
-    "price": 89.00,
-    "isPublished": false
-  }
-}
-```
-
-## 常见问题
-
-### 1. 仓储无法注入
-
-**问题**：运行时提示找不到 `IBookRepository` 的实现。
-
-**解决**：
-- 确保在模块的 `ConfigureServices` 中调用了 `AutoRegisterRepositories`
-- 确保 `Book` 继承自 `AggregateRoot` 或 `AggregateRoot<TKey>`
-
-### 2. 领域事件未触发
-
-**问题**：领域事件处理器没有执行。
-
-**解决**：
-- 确保调用了 `await repository.SaveChangesAsync()`
-- 领域事件会在 `SaveChangesAsync` 时自动派发
-- 确保事件处理器实现了 `IDomainEventHandler<TEvent>`
-
-### 3. 审计字段为空
-
-**问题**：CreatedTime、ModifiedTime 等字段没有自动填充。
-
-**解决**：
-- 确保 DbContext 的 `OnModelCreating` 调用了 `base.OnModelCreating(modelBuilder)`
-- 确保在 `AuditConfig` 中启用了审计功能
-
-### 4. 忘记调用 Build()
-
-**问题**：运行时出现模块未初始化的错误。
-
-**解决**：
-- 确保 `AddMiCakeWithDefault(...).Build()` 调用了 `Build()` 方法
 
 ## 下一步
 
 恭喜！您已经成功搭建了一个基于 MiCake 的 DDD 应用。接下来可以：
 
-- 学习 [核心概念](./核心概念.md) 深入理解 MiCake 的设计
-- 阅读 [实体](./实体.md) 了解实体的详细用法
-- 探索 [聚合根](./聚合根.md) 学习聚合的设计原则
-- 查看 [领域事件](./领域事件.md) 掌握事件驱动开发
-- 学习 [仓储](./仓储.md) 了解数据持久化的最佳实践
-
-## 完整示例
-
-查看 `samples/BaseMiCakeApplication` 目录，里面有一个完整的示例应用，展示了 MiCake 的各种功能。
+- 学习 [核心概念](./core-concepts.md) 深入理解 MiCake 的设计
+- 阅读 [实体](../domain-driven/entity.md) 了解实体的详细用法
+- 探索 [聚合根](../domain-driven/aggregate-root.md) 学习聚合的设计原则
+- 查看 [领域事件](../domain-driven/domain-event.md) 掌握事件驱动开发
+- 学习 [仓储](../domain-driven/repository.md) 了解数据持久化的最佳实践
 
 ## 获取帮助
 

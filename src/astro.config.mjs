@@ -47,6 +47,7 @@ export default defineConfig({
 					items: [
 						{ label: 'MiCake 简介', slug: 'getting-started/introduction' },
 						{ label: '快速开始', slug: 'getting-started/quick-start' },
+						{ label: '现有项目集成', slug: 'getting-started/from-custom' },
 						{ label: '核心概念', slug: 'getting-started/core-concepts' },
 					],
 				},
