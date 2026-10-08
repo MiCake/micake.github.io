@@ -207,6 +207,93 @@ public async Task ComplexOperationAsync()
 - If any level fails, the entire transaction is rolled back
 - Multiple levels of nesting are supported (it is recommended to keep it under 3 levels)
 
+## Isolated Execution and Background Jobs
+
+By default `BeginAsync` returns a **shared nested** instance when an ambient unit of work exists (commit is delegated to the root). Some scenarios need a **truly independent** transaction: each write block commits on its own, and one block's failure must not roll back or poison the others. MiCake offers three isolated entries; choose by whether the call site knows its own host context:
+
+| Intent | Ambient at the call site | Entry |
+|--------|--------------------------|-------|
+| Own a transaction boundary (host edge, long-running flow) | any | `BeginAsync` (shared nested when an ambient UoW exists) |
+| Isolated committed write block | unknown — service shared by requests and background jobs | `ExecuteIsolatedAsync` (adapts to either context) |
+| Isolated committed write block | always present; misuse must fail fast | `ExecuteRequiresNewAsync` (strict) |
+| Isolated committed write block | never present; misuse must fail fast | `IStandaloneUnitOfWorkExecutor` (strict) |
+
+The two strict entries are **wiring self-check** variants of `ExecuteIsolatedAsync`: when their precondition is violated they throw a diagnosable exception immediately instead of leaving the problem to runtime. Without an ambient UoW, `ExecuteRequiresNewAsync`'s exception message names all three remediation paths (establish a boundary frame with `BeginAsync` / switch to `ExecuteIsolatedAsync` / use `IStandaloneUnitOfWorkExecutor`).
+
+### Context-Agnostic Isolated Execution (`ExecuteIsolatedAsync`)
+
+`ExecuteIsolatedAsync` always creates an independent root unit of work in a fully isolated DI scope, **regardless of any ambient UoW**:
+
+```csharp
+// The same code works in a controller action, a domain service, or a background job
+await _uowManager.ExecuteIsolatedAsync(async (sp, ct) =>
+{
+    // Resolve repositories/DbContexts from the callback's provider (capturing outer scoped services fails the ownership check)
+    var repo = sp.GetRequiredService<IRepository<Order, int>>();
+    await repo.AddAsync(order, ct);
+    // Commits automatically on success; rolls back on failure
+});
+```
+
+Semantics:
+
+- With an ambient UoW: the outer frame is **suspended** and **restored** on every exit path (success, failure, cancellation, commit failure, rollback failure);
+- Without one: it runs self-contained and restoration is a no-op;
+- An inner commit never persists the outer's uncommitted changes, and an inner rollback never affects the outer's tracked state;
+- The original exception is preserved on failure; if rollback also fails, a `UnitOfWorkBoundaryException` combining both causes is thrown.
+
+### Strict Entries
+
+Use the strict entries when you want a wiring self-check that fails fast on misuse:
+
+```csharp
+// Requires an ambient UoW: for isolated inner blocks that are definitely inside a request/known boundary
+await _uowManager.ExecuteRequiresNewAsync(async (sp, ct) =>
+{
+    var repo = sp.GetRequiredService<IRepository<Order, int>>();
+    await repo.AddAsync(order, ct);
+});
+
+// Requires no ambient UoW: for independent operations with no request context
+var executor = sp.GetRequiredService<IStandaloneUnitOfWorkExecutor>();
+await executor.ExecuteAsync(async (isolatedProvider, ct) =>
+{
+    var repo = isolatedProvider.GetRequiredService<IRepository<Order, int>>();
+    await repo.AddAsync(order, ct);
+});
+```
+
+### Background Jobs and Non-HTTP Hosts
+
+ASP.NET Core requests get a UoW boundary automatically through the filter; Hangfire, console apps, and custom workers have **no equivalent integration**, so the host edge must create the frame itself. The example below is an async job base class:
+
+**Async job base class (no sync-over-async)**
+
+```csharp
+public abstract class UnitOfWorkJobBase
+{
+    private readonly IUnitOfWorkManager _unitOfWorkManager;
+
+    protected UnitOfWorkJobBase(IUnitOfWorkManager unitOfWorkManager)
+        => _unitOfWorkManager = unitOfWorkManager;
+
+    public async Task ExecuteJobAsync(Func<CancellationToken, Task> body, CancellationToken cancellationToken)
+    {
+        // The boundary frame is read-only by default: long-running jobs never extend a write transaction
+        await using var uow = await _unitOfWorkManager.BeginAsync(UnitOfWorkOptions.ReadOnly, cancellationToken);
+        await body(cancellationToken);   // write blocks inside use ExecuteIsolatedAsync
+        await uow.CommitAsync(cancellationToken);
+    }
+}
+```
+
+**Notes**
+
+- **Ambient frames are backed by `AsyncLocal`**: they must be created in the **synchronous segment** of the frame-owning method (the same premise as the ASP.NET filter); do not create frames inside `Task.Run`, timers, or fire-and-forget continuations.
+- **Opt out**: notification-only jobs need no boundary — simply do not wrap the job body.
+- **Cancellation**: a cancelled write block rolls back its own UoW and preserves the `OperationCanceledException`; the boundary frame still rolls back and is released.
+- **Retries**: every attempt gets a fresh DI scope and DbContext, so retries start from clean state; the boundary rollback is usually empty because write blocks are individually committed and idempotent.
+
 ## Declarative Control Through Attributes
 
 ### Enabling the Unit of Work
@@ -553,14 +640,14 @@ using var outerUow = await _uowManager.BeginAsync();
 using var innerUow = await _uowManager.BeginAsync(requiresNew: true);  // ❌ Compile error
 ```
 
-For a truly **independent transaction**, use the isolated callback execution `ExecuteRequiresNewAsync` (creates a separate DI scope; commits automatically on success, rolls back on failure):
+For a truly **independent transaction**, use isolated callback execution. For **entry-agnostic services** (shared by requests and background jobs), you can use the context-agnostic `ExecuteIsolatedAsync`; use the strict `ExecuteRequiresNewAsync` (requires an ambient UoW) when you want a wiring self-check that fails fast on misuse:
 
 ```csharp
-await _uowManager.ExecuteRequiresNewAsync(async (sp, ct) =>
+await _uowManager.ExecuteIsolatedAsync(async (sp, ct) =>
 {
     // Resolve services from the callback's provider (capturing outer scoped services fails the ownership check)
     var repo = sp.GetRequiredService<IRepository<Order, int>>();
-    await repo.AddAsync(order);
+    await repo.AddAsync(order, ct);
 });
 ```
 
@@ -583,6 +670,7 @@ The unit of work is the core of transaction management in MiCake. In the framewo
 - ✅ **Nested transaction support** - flexible transaction composition
 - ✅ **Declarative control** - attributes simplify configuration
 - ✅ **Automatic management** - ASP.NET Core integration
+- ✅ **Isolated execution** - independently committed write blocks (`ExecuteIsolatedAsync` plus the strict entries) for background jobs and other hosts without a request boundary
 
 By using units of work sensibly, you can:
 - Ensure data consistency

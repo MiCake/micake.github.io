@@ -207,6 +207,93 @@ public async Task ComplexOperationAsync()
 - 如果任意层失败，整个事务回滚
 - 支持多层嵌套（建议不超过 3 层）
 
+## 隔离执行与后台作业
+
+默认情况下，`BeginAsync` 在已有环境工作单元时返回**共享嵌套**实例（提交委托给根）。有些场景需要**真正独立**的事务：每个写块独立提交，一个写块失败不应回滚或污染其他写块。MiCake 提供三个隔离入口，按"调用点是否知道自身所处宿主上下文"选择：
+
+| 意图 | 调用点环境 | 入口 |
+|---|---|---|
+| 持有事务边界（宿主边缘、长流程包裹） | 任意 | `BeginAsync`（已有环境时为共享嵌套） |
+| 独立提交的隔离写块 | 未知——请求与后台作业共用的服务 | `ExecuteIsolatedAsync`（按环境自适应） |
+| 独立提交的隔离写块 | 一定存在环境 UoW，误用需快速失败 | `ExecuteRequiresNewAsync`（严格） |
+| 独立提交的隔离写块 | 一定不存在环境 UoW，误用需快速失败 | `IStandaloneUnitOfWorkExecutor`（严格） |
+
+两个严格入口是 `ExecuteIsolatedAsync` 的**接线自检**变体：前置条件不满足时立即抛出可诊断的异常，而不是把问题留到运行期。缺少环境 UoW 时，`ExecuteRequiresNewAsync` 的异常消息会指明三条修复路径（用 `BeginAsync` 建边界帧 / 改用 `ExecuteIsolatedAsync` / 改用 `IStandaloneUnitOfWorkExecutor`）。
+
+### 上下文无关隔离执行（`ExecuteIsolatedAsync`）
+
+`ExecuteIsolatedAsync` 始终在完全隔离的 DI 作用域中创建独立根工作单元，**不关心是否存在环境 UoW**：
+
+```csharp
+// 同一段代码可用于 controller action、领域服务或后台作业
+await _uowManager.ExecuteIsolatedAsync(async (sp, ct) =>
+{
+    // 必须从回调的 provider 解析仓储/DbContext（捕获外层 scoped 服务会触发所有权校验失败）
+    var repo = sp.GetRequiredService<IRepository<Order, int>>();
+    await repo.AddAsync(order, ct);
+    // 成功自动提交；失败自动回滚
+});
+```
+
+语义要点：
+
+- 存在环境 UoW 时：**挂起**外层帧，并在所有退出路径（成功、失败、取消、提交失败、回滚失败）**恢复**；
+- 不存在环境 UoW 时：自足执行，恢复为空操作；
+- 内层提交不会持久化外层的未提交变更，内层回滚也不影响外层跟踪状态；
+- 失败时保留原始异常；若回滚同时失败，抛 `UnitOfWorkBoundaryException` 合并两侧原因。
+
+### 严格入口
+
+需要"选错即失败"的接线自检时使用严格入口：
+
+```csharp
+// 要求存在环境 UoW：适合明确处于请求/已知边界内的内部隔离块
+await _uowManager.ExecuteRequiresNewAsync(async (sp, ct) =>
+{
+    var repo = sp.GetRequiredService<IRepository<Order, int>>();
+    await repo.AddAsync(order, ct);
+});
+
+// 要求不存在环境 UoW：适合明确无请求上下文的独立操作
+var executor = sp.GetRequiredService<IStandaloneUnitOfWorkExecutor>();
+await executor.ExecuteAsync(async (isolatedProvider, ct) =>
+{
+    var repo = isolatedProvider.GetRequiredService<IRepository<Order, int>>();
+    await repo.AddAsync(order, ct);
+});
+```
+
+### 后台作业与非 HTTP 宿主
+
+ASP.NET Core 请求由框架通过过滤器自动建立 UoW 边界；Hangfire、控制台与自定义 worker **没有**等价集成，需要在宿主边缘自行建帧。下面是一个异步作业基类示例：
+
+**异步作业基类（无 sync-over-async）**
+
+```csharp
+public abstract class UnitOfWorkJobBase
+{
+    private readonly IUnitOfWorkManager _unitOfWorkManager;
+
+    protected UnitOfWorkJobBase(IUnitOfWorkManager unitOfWorkManager)
+        => _unitOfWorkManager = unitOfWorkManager;
+
+    public async Task ExecuteJobAsync(Func<CancellationToken, Task> body, CancellationToken cancellationToken)
+    {
+        // 边界帧默认只读：长时间运行的作业不会把写事务拉长
+        await using var uow = await _unitOfWorkManager.BeginAsync(UnitOfWorkOptions.ReadOnly, cancellationToken);
+        await body(cancellationToken);   // 内部写块使用 ExecuteIsolatedAsync
+        await uow.CommitAsync(cancellationToken);
+    }
+}
+```
+
+**注意事项**
+
+- **环境帧基于 `AsyncLocal`**：必须在帧所属方法的**同步段**创建（与 ASP.NET 过滤器同一前提）；不要在 `Task.Run`、定时器或 fire-and-forget 续体中建帧。
+- **opt-out**：纯通知类作业不需要边界——不包裹作业体即可。
+- **取消**：写块取消时回滚自己的 UoW 并保留 `OperationCanceledException`；边界帧照常回滚并释放。
+- **重试**：每次尝试都会获得新的 DI 作用域与 DbContext，重试从干净状态开始；边界回滚通常为空，因为各写块已独立提交且幂等。
+
 ## Attribute 声明式控制
 
 ### 启用工作单元
@@ -553,14 +640,14 @@ using var outerUow = await _uowManager.BeginAsync();
 using var innerUow = await _uowManager.BeginAsync(requiresNew: true);  // ❌ 编译错误
 ```
 
-需要真正的**独立事务**时，使用隔离回调执行 `ExecuteRequiresNewAsync`（创建独立 DI 作用域，成功自动提交、失败自动回滚）：
+需要真正的**独立事务**时，使用隔离回调执行。**入口无关的服务**（请求与后台作业共用）可用上下文无关的 `ExecuteIsolatedAsync`；需要"选错即失败"的接线自检时，用严格入口 `ExecuteRequiresNewAsync`（要求存在环境 UoW）：
 
 ```csharp
-await _uowManager.ExecuteRequiresNewAsync(async (sp, ct) =>
+await _uowManager.ExecuteIsolatedAsync(async (sp, ct) =>
 {
     // 必须从回调的 provider 解析服务（捕获外层 scoped 服务会触发所有权校验失败）
     var repo = sp.GetRequiredService<IRepository<Order, int>>();
-    await repo.AddAsync(order);
+    await repo.AddAsync(order, ct);
 });
 ```
 
@@ -583,6 +670,7 @@ await outerUow.CommitAsync();
 - ✅ **嵌套事务支持** - 灵活的事务组合
 - ✅ **声明式控制** - Attribute 简化配置
 - ✅ **自动管理** - ASP.NET Core 集成
+- ✅ **隔离执行** - 独立提交的写块（`ExecuteIsolatedAsync` 及严格入口），覆盖后台作业等无请求边界的宿主
 
 通过合理使用工作单元，您可以：
 - 确保数据一致性
